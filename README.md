@@ -4,6 +4,8 @@ This browser extension adds a new sidebar to the Inspector/Element panel. The si
 
 *This is only a proof of concept and has lots of bugs*
 
+![visual picker demo](/visual-picker.gif)
+
 ## How to install it
 
 * Make sure you have Firefox Nightly installed
