@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:root {
+  --item-height: 30px;
+  --theme-toolbar-background: #f9f9fa;
+  --theme-splitter-color: #e0e0e1;
+  --theme-highlight-blue: #0074e8;
+  --theme-highlight-red: #dd00a9;
+  --theme-highlight-purple: #003eaa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  font: message-box;
+  font-size: 12px;
+  overflow-x: hidden;
+}
+
+body {
+  padding: 1em;
+}
+
+#elements-list {
+  margin: 1em 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1em;
+}
+
+.element {
+  border: 2px solid #ccc;
+  padding: .5em;
+  border-radius: 3px;
+  display: grid;
+  place-items: center;
+  gap: .5em;
+  cursor: pointer;
+}
+
+.node-preview .tag {
+  color: var(--theme-highlight-blue);
+}
+
+.node-preview .attribute.id {
+  color: var(--theme-highlight-red);
+}
+.node-preview .attribute.class {
+  color: var(--theme-highlight-purple);
+}
+
+.reason-preview {
+  color: #364146;
+  font-weight: bold;
+}

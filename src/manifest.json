@@ -1,0 +1,30 @@
+{
+  "description": "DevTools Inspector sidebar panel to list elements that contribute to a particular x/y coordinate on the page",
+  "manifest_version": 2,
+  "name": "visual-picker",
+  "version": "1.0.0",
+  "author": "Patrick Brosset",
+  "homepage_url": "https://github.com/captainbrosset/visual-picker",
+  "icons": {
+    "48": "icons/logo.svg"
+  },
+
+  "permissions": [
+      "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background_scripts/background.js"]
+  },
+
+  "devtools_page": "devtools/devtools-page.html",
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_scripts/content.js"],
+      "css": ["content_scripts/content.css"]
+    }
+  ]
+
+}

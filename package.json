@@ -1,0 +1,21 @@
+{
+  "name": "visual-picker",
+  "version": "1.0.0",
+  "license": "MPL-2.0",
+  "description": "DevTools extension that lets you click anywhere on a page and tells you which elements contribute to this location.",
+  "scripts": {
+    "build": "web-ext build --source-dir src --overwrite-dest --artifacts-dir dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/captainbrosset/visual-picker.git"
+  },
+  "author": "Patrick Brosset",
+  "bugs": {
+    "url": "https://github.com/captainbrosset/visual-picker/issues"
+  },
+  "homepage": "https://github.com/captainbrosset/visual-picker#readme",
+  "devDependencies": {
+    "web-ext": "^2.2.2"
+  }
+}
