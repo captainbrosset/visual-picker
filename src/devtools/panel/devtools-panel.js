@@ -22,11 +22,19 @@ function handlePickerButtonClick() {
 }
 
 function handleElementClick(e) {
-  if (!e.target.closest(".element")) {
+  const element = e.target.closest(".element");
+  if (!element) {
     return;
   }
 
-  const selector = e.target.dataset.selector;
+  [...document.querySelectorAll(".element.selected")].forEach(
+    el => el.classList.remove("selected"));
+  element.classList.add("selected");
+
+  selectElement(element.dataset.selector);
+}
+
+function selectElement(selector) {
   browser.devtools.inspectedWindow.eval(`inspect(document.querySelector("${selector}"))`);
 }
 
@@ -48,6 +56,7 @@ function clearList() {
 function populateList(elements) {
   clearList();
 
+  let isFirst = true;
   for (const { nodeName, attributes, reason, uniqueSelector } of elements) {
     const elementEl = document.createElement("li");
     elementEl.classList.add("element");
@@ -57,6 +66,12 @@ function populateList(elements) {
     elementEl.appendChild(createReasonPreview(reason));
 
     elementsListEl.appendChild(elementEl);
+
+    if (isFirst) {
+      elementEl.classList.add("selected");
+      selectElement(uniqueSelector);
+      isFirst = false;
+    }
   }
 }
 

@@ -8,8 +8,18 @@ function pick() {
   showOverlay();
 
   return new Promise(resolve => {
+    function onMove(e) {
+      const elements = findElementsContributingToLocation(e.pageX, e.pageY);
+      drawRects(elements.map(el => {
+        return Object.assign(el.rect, { type: el.reason });
+      }));
+    }
+
+    addEventListener("mousemove", onMove);
+
     addEventListener("click", e => {
       hideOverlay();
+      removeEventListener("mousemove", onMove);
       resolve({ x: e.pageX, y: e.pageY });
     }, {once: true});
   });
@@ -18,10 +28,40 @@ function pick() {
 let overlay = null;
 const OVERLAY_ID = "__visual_picker_overlay";
 
+const BACKGROUND_COLORS = {
+  margin: "#edff64",
+  border: "#444444",
+  padding: "#6a5acd",
+};
+
+function drawRects(rects) {
+  if (!overlay) {
+    return;
+  }
+
+  [...overlay.querySelectorAll("*")].forEach(rectEl => rectEl.remove());
+
+  for (const { p1, p2, p3, p4, type } of rects) {
+    const rectEl = document.createElement("div");
+    rectEl.style = `position:absolute;top:${p1.y}px;left:${p1.x}px;
+                    width:${p2.x - p1.x}px;height:${p4.y - p1.y}px;
+                    background:${BACKGROUND_COLORS[type]};opacity:.8;
+                    overflow:hidden;display:flex;justify-content:center;align-items:center;
+                    font-size:9px;font:verdana;`;
+    rectEl.textContent = type;
+    overlay.appendChild(rectEl);
+  }
+}
+
+let oldDocumentElementPosition = "";
+
 function showOverlay() {
+  oldDocumentElementPosition = document.documentElement.style.position;
+  document.documentElement.style.position = "relative";
+
   overlay = document.createElement("div");
   overlay.id = OVERLAY_ID;
-  overlay.style = "position:absolute;top:0;left:0;bottom:0;right:0;z-index:2147483647;";
+  overlay.style = "position:absolute;top:0;left:0;bottom:0;right:0;z-index:2147483647;overflow:hidden;";
   document.body.appendChild(overlay);
 }
 
@@ -29,6 +69,8 @@ function hideOverlay() {
   if (overlay) {
     overlay.remove();
     overlay = null;
+
+    document.documentElement.style.position = oldDocumentElementPosition;
   }
 }
 
@@ -49,11 +91,11 @@ function initElementCache() {
 function isPointInRects(x, y, rects) {
   for (const {p1, p2, p3, p4} of rects) {
     if (x >= p1.x && x <= p2.x && y >= p1.y && y <= p4.y) {
-      return true;
+      return { p1, p2, p3, p4 };
     }
   }
 
-  return false;
+  return null;
 }
 
 /**
@@ -134,12 +176,21 @@ function findElementsContributingToLocation(x, y) {
     });
 
     // Check if the point is included in any of the regions between these boxes.
-    if (isPointInRects(x, y, createRectsForQuads(marginQuads, borderQuads))) {
-      contributingEls.push({ el, reason: "margin" });
-    } else if (isPointInRects(x, y, createRectsForQuads(borderQuads, paddingQuads))) {
-      contributingEls.push({ el, reason: "border" });
-    } else if (isPointInRects(x, y, createRectsForQuads(paddingQuads, contentQuads))) {
-      contributingEls.push({ el, reason: "padding" });
+    let rect = isPointInRects(x, y, createRectsForQuads(marginQuads, borderQuads));
+    if (rect) {
+      contributingEls.push({ el, reason: "margin", rect });
+      continue;
+    }
+
+    rect = isPointInRects(x, y, createRectsForQuads(borderQuads, paddingQuads));
+    if (rect) {
+      contributingEls.push({ el, reason: "border", rect });
+      continue;
+    }
+
+    rect = isPointInRects(x, y, createRectsForQuads(paddingQuads, contentQuads));
+    if (rect) {
+      contributingEls.push({ el, reason: "padding", rect });
     }
   }
 

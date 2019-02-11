@@ -45,6 +45,10 @@ body {
   cursor: pointer;
 }
 
+.element.selected {
+  background: #eee;
+}
+
 .node-preview .tag {
   color: var(--theme-highlight-blue);
 }
