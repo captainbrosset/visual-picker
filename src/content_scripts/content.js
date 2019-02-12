@@ -28,10 +28,12 @@ function pick() {
 let overlay = null;
 const OVERLAY_ID = "__visual_picker_overlay";
 
-const BACKGROUND_COLORS = {
-  margin: "#edff64",
-  border: "#444444",
-  padding: "#6a5acd",
+const RECT_STYLES = {
+  margin: "background:#edff64;opacity:.6;",
+  border: "background:#444444;opacity:.6;",
+  padding: "background:#6a5acd;opacity:.6;",
+  content: "border:1px solid #87ceeb;",
+  text: "background:#aaa5;",
 };
 
 function drawRects(rects) {
@@ -45,10 +47,9 @@ function drawRects(rects) {
     const rectEl = document.createElement("div");
     rectEl.style = `position:absolute;top:${p1.y}px;left:${p1.x}px;
                     width:${p2.x - p1.x}px;height:${p4.y - p1.y}px;
-                    background:${BACKGROUND_COLORS[type]};opacity:.8;
+                    ${RECT_STYLES[type]}
                     overflow:hidden;display:flex;justify-content:center;align-items:center;
-                    font-size:9px;font:verdana;`;
-    rectEl.textContent = type;
+                    font-size:9px;font:verdana;cursor:pointer;`;
     overlay.appendChild(rectEl);
   }
 }
@@ -61,7 +62,8 @@ function showOverlay() {
 
   overlay = document.createElement("div");
   overlay.id = OVERLAY_ID;
-  overlay.style = "position:absolute;top:0;left:0;bottom:0;right:0;z-index:2147483647;overflow:hidden;";
+  overlay.style = `position:absolute;top:0;left:0;bottom:0;right:0;z-index:2147483647;
+                   overflow:hidden;cursor:pointer;`;
   document.body.appendChild(overlay);
 }
 
@@ -78,13 +80,22 @@ function hideOverlay() {
 const ELEMENT_CACHE = new Set();
 
 function initElementCache() {
-  const allEls = [...document.querySelectorAll("*")];
-  for (const el of allEls) {
-    if (!el.getBoxQuads || !el.getBoxQuads().length) {
-      continue;
-    }
+  ELEMENT_CACHE.add(document.documentElement);
 
-    ELEMENT_CACHE.add(el);
+  const walker = document.createTreeWalker(
+    document.documentElement,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: node => {
+        if (node.getBoxQuads && node.getBoxQuads().length) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_SKIP;
+      }
+    });
+
+  while (walker.nextNode()) {
+    ELEMENT_CACHE.add(walker.currentNode);
   }
 }
 
@@ -107,6 +118,11 @@ function createRectsForQuads(outerQuads, innerQuads) {
   const rects = [];
 
   outerQuads.forEach((outerQuad, i) => {
+    if (!innerQuads) {
+      rects.push(outerQuad);
+      return;
+    }
+
     const innerQuad = innerQuads[i];
 
     // Top margin
@@ -178,23 +194,34 @@ function findElementsContributingToLocation(x, y) {
     // Check if the point is included in any of the regions between these boxes.
     let rect = isPointInRects(x, y, createRectsForQuads(marginQuads, borderQuads));
     if (rect) {
+      rect.type = "margin";
       contributingEls.push({ el, reason: "margin", rect });
       continue;
     }
 
     rect = isPointInRects(x, y, createRectsForQuads(borderQuads, paddingQuads));
     if (rect) {
+      rect.type = "border";
       contributingEls.push({ el, reason: "border", rect });
       continue;
     }
 
     rect = isPointInRects(x, y, createRectsForQuads(paddingQuads, contentQuads));
     if (rect) {
+      rect.type = "padding";
       contributingEls.push({ el, reason: "padding", rect });
+      continue;
+    }
+
+    rect = isPointInRects(x, y, createRectsForQuads(contentQuads));
+    if (rect) {
+      const reason = el.nodeType === el.TEXT_NODE ? "text" : "content";
+      rect.type = reason;
+      contributingEls.push({ el, reason, rect });
     }
   }
 
-  return contributingEls;
+  return contributingEls.reverse();
 }
 
 function findCssSelector(ele) {
@@ -266,21 +293,49 @@ function positionInNodeList(element, nodeList) {
  * @return {Object} The response object.
  */
 function createNodeResponse({ el, reason }) {
-  // Getting all attributes as simple {name, value} objects.
-  let attributes = [...el.attributes].map(({ name, value }) => ({ name, value }));
+  if (el.attributes) {
+    // For element nodes
+    // Getting all attributes as simple {name, value} objects.
+    let attributes = [...el.attributes].map(({ name, value }) => ({ name, value }));
 
-  return {
-    nodeName: el.nodeName,
-    attributes,
-    reason,
-    uniqueSelector: findCssSelector(el)
-  };
+    return {
+      nodeName: el.nodeName,
+      attributes,
+      reason,
+      uniqueSelector: findCssSelector(el)
+    };
+  } else {
+    // For text nodes
+    return {
+      nodeName: el.nodeName,
+      reason: "text",
+      uniqueSelector: findCssSelector(el.parentElement)
+    };
+  }
 }
+
+let LAST_RESPONSE = null;
 
 async function handlePickMessage() {
   const { x, y } = await pick();
   const elements = findElementsContributingToLocation(x, y);
+  LAST_RESPONSE = elements;
   return { elements: elements.map(createNodeResponse) };
+}
+
+function handleHighlightMessage(index) {
+  const element = LAST_RESPONSE[index];
+  if (!element) {
+    return;
+  }
+
+  hideOverlay();
+  showOverlay();
+  drawRects([element.rect]);
+}
+
+function handleUnhighlightMessage() {
+  hideOverlay();
 }
 
 // Open the port to communicate with the background script.
@@ -292,6 +347,12 @@ port.onMessage.addListener(message => {
   switch (message.action) {
     case "pick":
       handlePickMessage().then(response => sendResponse(response));
+      break;
+    case "highlight":
+      handleHighlightMessage(message.index);
+      break;
+    case "unhighlight":
+      handleUnhighlightMessage();
       break;
   }
 });

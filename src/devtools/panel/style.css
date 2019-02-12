@@ -31,16 +31,14 @@ body {
   padding: 0;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 1em;
+  grid-template-columns: 1fr;
 }
 
 .element {
-  border: 2px solid #ccc;
   padding: .5em;
-  border-radius: 3px;
   display: grid;
-  place-items: center;
+  grid-template-columns: 1fr max-content;
+  border-block-end: 1px solid #ddd;
   gap: .5em;
   cursor: pointer;
 }

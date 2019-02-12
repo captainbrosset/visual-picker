@@ -13,6 +13,7 @@ const elementsListEl = document.querySelector("#elements-list");
 pickerButtonEl.addEventListener("click", handlePickerButtonClick);
 
 addEventListener("click", handleElementClick);
+addEventListener("mousemove", handleElementHover);
 
 function handlePickerButtonClick() {
   browser.runtime.sendMessage({
@@ -32,6 +33,25 @@ function handleElementClick(e) {
   element.classList.add("selected");
 
   selectElement(element.dataset.selector);
+}
+
+function handleElementHover(e) {
+  const element = e.target.closest(".element");
+  if (!element) {
+    browser.runtime.sendMessage({
+      tabId: browser.devtools.inspectedWindow.tabId,
+      action: "unhighlight",
+    });
+    return;
+  }
+
+  const index = [...element.parentNode.childNodes].findIndex(node => node === element);
+
+  browser.runtime.sendMessage({
+    tabId: browser.devtools.inspectedWindow.tabId,
+    action: "highlight",
+    index,
+  });
 }
 
 function selectElement(selector) {
@@ -92,7 +112,7 @@ function createNodePreview(nodeName, attributes) {
   name.textContent = nodeName.toLowerCase();
   preview.appendChild(name);
 
-  const idAttr = attributes.find(i => i.name === "id");
+  const idAttr = attributes && attributes.find(i => i.name === "id");
   if (idAttr) {
     const attribute = document.createElement("span");
     attribute.classList.add("attribute", "id");
@@ -100,7 +120,7 @@ function createNodePreview(nodeName, attributes) {
     preview.appendChild(attribute);
   }
 
-  const classAttr = attributes.find(i => i.name === "class");
+  const classAttr = attributes && attributes.find(i => i.name === "class");
   if (classAttr) {
     const attribute = document.createElement("span");
     attribute.classList.add("attribute", "class");
