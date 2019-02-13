@@ -4,7 +4,10 @@
 
 "use strict";
 
+let isPicking = false;
+
 function pick() {
+  isPicking = true;
   showOverlay();
 
   return new Promise(resolve => {
@@ -18,6 +21,7 @@ function pick() {
     addEventListener("mousemove", onMove);
 
     addEventListener("click", e => {
+      isPicking = false;
       hideOverlay();
       removeEventListener("mousemove", onMove);
       resolve({ x: e.pageX, y: e.pageY });
@@ -349,10 +353,14 @@ port.onMessage.addListener(message => {
       handlePickMessage().then(response => sendResponse(response));
       break;
     case "highlight":
-      handleHighlightMessage(message.index);
+      if (!isPicking) {
+        handleHighlightMessage(message.index);
+      }
       break;
     case "unhighlight":
-      handleUnhighlightMessage();
+      if (!isPicking) {
+        handleUnhighlightMessage();
+      }
       break;
   }
 });
